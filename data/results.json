@@ -1,0 +1,1270 @@
+{
+ "raw_rows": 501559,
+ "raw_fraud": 1058,
+ "quality": {
+  "nulls": {
+   "Transaction_ID": 0,
+   "Card_ID": 0,
+   "Timestamp": 0,
+   "Merchant_Category": 0,
+   "Transaction_Amount": 0,
+   "Merchant_Country": 0,
+   "Distance_From_Home": 4628,
+   "Device_Fingerprint_Hash": 2558,
+   "Is_Proxy_IP": 0,
+   "Fraud_Flag": 0,
+   "Card_Country": 0
+  },
+  "dup_ids": 501,
+  "neg_amount": 150,
+  "amount_gt_20k": 6,
+  "dist_gt_20000km": 0,
+  "dist_missing_by_proxy": {
+   "0": 0.003051380856707236,
+   "1": 0.3036095478362119
+  }
+ },
+ "clean_rows": 500908,
+ "clean_fraud": 1058,
+ "cleaning_log": [
+  {
+   "anomaly": "Duplicate Transaction_ID (batch replay)",
+   "rows": 501,
+   "pct": 0.1,
+   "action": "Dropped duplicates, kept first",
+   "why": "Identical rows replayed by ingestion; not genuine repeat events"
+  },
+  {
+   "anomaly": "Negative Transaction_Amount",
+   "rows": 150,
+   "pct": 0.03,
+   "action": "Quarantined to data/quarantine_negative_amount.csv and dropped",
+   "why": "Refund/reversal records, not purchase events; invalid as authorisation requests"
+  },
+  {
+   "anomaly": "Missing Distance_From_Home",
+   "rows": 4623,
+   "pct": 0.922,
+   "action": "Median-imputed (train median) + Dist_Missing flag",
+   "why": "GeoIP lookup fails more often behind proxies (MNAR), so missingness itself is kept as a signal"
+  },
+  {
+   "anomaly": "Missing Device_Fingerprint_Hash",
+   "rows": 2557,
+   "pct": 0.51,
+   "action": "Separate category 'MISSING'",
+   "why": "Legacy checkout without SDK; absence is informative"
+  },
+  {
+   "anomaly": "Extreme Transaction_Amount (>20k)",
+   "rows": 6,
+   "pct": 0.001,
+   "action": "Retained; log transform used",
+   "why": "Plausible genuine large purchases; fraud can also be large"
+  }
+ ],
+ "features": [
+  "Log_Amount",
+  "Amount_Ratio",
+  "Log_Dist",
+  "Dist_Missing",
+  "Tx_Velocity_1H",
+  "Tx_Velocity_24H",
+  "Spend_Last_1H",
+  "Cross_Border",
+  "Device_New",
+  "Is_First_Tx",
+  "Is_Proxy_IP",
+  "Hour_Sin",
+  "Hour_Cos",
+  "Log_Secs_Since_Last",
+  "MCC_Crypto",
+  "MCC_Electronics",
+  "MCC_Fuel",
+  "MCC_Grocery",
+  "MCC_Jewelry",
+  "MCC_Online_Services",
+  "MCC_Restaurants",
+  "MCC_Retail",
+  "MCC_Travel",
+  "MCC_Utilities",
+  "CC_BR",
+  "CC_DE",
+  "CC_GB",
+  "CC_IN",
+  "CC_SG",
+  "CC_US"
+ ],
+ "split": {
+  "train": {
+   "rows": 333711,
+   "fraud": 664,
+   "rate_pct": 0.199
+  },
+  "val": {
+   "rows": 83685,
+   "fraud": 193,
+   "rate_pct": 0.231
+  },
+  "test": {
+   "rows": 83512,
+   "fraud": 201,
+   "rate_pct": 0.241
+  }
+ },
+ "xgb_spw_search": {
+  "5": 0.7677,
+  "20": 0.7552,
+  "60": 0.7455,
+  "150": 0.7277
+ },
+ "xgb_spw_chosen": 5,
+ "cv_folds": [
+  [
+   8,
+   12
+  ],
+  [
+   12,
+   16
+  ],
+  [
+   16,
+   20
+  ]
+ ],
+ "cv_pr_auc": {
+  "Rule baseline": [
+   0.4686,
+   0.5409,
+   0.4525
+  ],
+  "LogReg (class weights)": [
+   0.801,
+   0.8221,
+   0.8505
+  ],
+  "Random Forest (balanced, depth 10)": [
+   0.7735,
+   0.7954,
+   0.8116
+  ],
+  "XGBoost (class weights)": [
+   0.8433,
+   0.8741,
+   0.8774
+  ]
+ },
+ "models": {
+  "Rule baseline": {
+   "val": {
+    "PR_AUC": 0.1945,
+    "ROC_AUC": 0.9302,
+    "Recall_at_95_Prec": 0.0104,
+    "Recall_at_5to1_FP": 0.3834,
+    "Recall_at_50_Prec": 0.2383
+   },
+   "test": {
+    "PR_AUC": 0.2897,
+    "ROC_AUC": 0.9292,
+    "Recall_at_95_Prec": 0.0348,
+    "Recall_at_5to1_FP": 0.5622,
+    "Recall_at_50_Prec": 0.2537
+   },
+   "train_secs": 0,
+   "cv_mean": 0.4874,
+   "cv_sd": 0.0384
+  },
+  "LogReg (class weights)": {
+   "val": {
+    "PR_AUC": 0.7359,
+    "ROC_AUC": 0.9837,
+    "Recall_at_95_Prec": 0.513,
+    "Recall_at_5to1_FP": 0.8756,
+    "Recall_at_50_Prec": 0.7513
+   },
+   "test": {
+    "PR_AUC": 0.7728,
+    "ROC_AUC": 0.9806,
+    "Recall_at_95_Prec": 0.5721,
+    "Recall_at_5to1_FP": 0.8856,
+    "Recall_at_50_Prec": 0.801
+   },
+   "train_secs": 0.9,
+   "cv_mean": 0.8246,
+   "cv_sd": 0.0203
+  },
+  "Random Forest (balanced, depth 10)": {
+   "val": {
+    "PR_AUC": 0.6631,
+    "ROC_AUC": 0.9842,
+    "Recall_at_95_Prec": 0.4145,
+    "Recall_at_5to1_FP": 0.8601,
+    "Recall_at_50_Prec": 0.6684
+   },
+   "test": {
+    "PR_AUC": 0.7129,
+    "ROC_AUC": 0.985,
+    "Recall_at_95_Prec": 0.4776,
+    "Recall_at_5to1_FP": 0.8756,
+    "Recall_at_50_Prec": 0.7463
+   },
+   "train_secs": 9.8,
+   "cv_mean": 0.7935,
+   "cv_sd": 0.0156
+  },
+  "XGBoost (class weights)": {
+   "val": {
+    "PR_AUC": 0.7677,
+    "ROC_AUC": 0.9889,
+    "Recall_at_95_Prec": 0.4715,
+    "Recall_at_5to1_FP": 0.8912,
+    "Recall_at_50_Prec": 0.8031
+   },
+   "test": {
+    "PR_AUC": 0.8012,
+    "ROC_AUC": 0.9891,
+    "Recall_at_95_Prec": 0.5672,
+    "Recall_at_5to1_FP": 0.8905,
+    "Recall_at_50_Prec": 0.8259
+   },
+   "train_secs": 6.6,
+   "cv_mean": 0.8649,
+   "cv_sd": 0.0154
+  }
+ },
+ "best": "XGBoost (class weights)",
+ "thresholds": {
+  "step_up": 0.016835637390613556,
+  "decline": 0.24,
+  "val_recall_target": 0.88
+ },
+ "bands_opt": {
+  "val": {
+   "t_step": 0.016835637390613556,
+   "t_decline": 0.24,
+   "fraud_recall_flagged": 0.8808,
+   "fp_to_tp_ratio": 3.51,
+   "precision_flagged": 0.2216,
+   "fraud_dollars_total": 38080.44,
+   "dollars_saved": 34938.44,
+   "pct_dollars_saved": 91.7,
+   "false_decline_rate_pct": 0.085,
+   "step_up_rate_pct": 0.662,
+   "decline_rate_pct": 0.255,
+   "alerts_per_day": 153,
+   "declined_fraud": 142,
+   "stepped_fraud": 28,
+   "missed_fraud": 23,
+   "net_cost": 5340.91,
+   "cost_no_model": 42905.44
+  },
+  "test": {
+   "t_step": 0.016835637390613556,
+   "t_decline": 0.24,
+   "fraud_recall_flagged": 0.8756,
+   "fp_to_tp_ratio": 3.11,
+   "precision_flagged": 0.2431,
+   "fraud_dollars_total": 43055.29,
+   "dollars_saved": 40197.73,
+   "pct_dollars_saved": 93.4,
+   "false_decline_rate_pct": 0.0636,
+   "step_up_rate_pct": 0.626,
+   "decline_rate_pct": 0.241,
+   "alerts_per_day": 145,
+   "declined_fraud": 148,
+   "stepped_fraud": 28,
+   "missed_fraud": 25,
+   "net_cost": 4882.61,
+   "cost_no_model": 48080.29
+  }
+ },
+ "bands_handbook": {
+  "val": {
+   "t_step": 0.15,
+   "t_decline": 0.65,
+   "fraud_recall_flagged": 0.772,
+   "fp_to_tp_ratio": 0.74,
+   "precision_flagged": 0.5731,
+   "fraud_dollars_total": 38080.44,
+   "dollars_saved": 31282.62,
+   "pct_dollars_saved": 82.1,
+   "false_decline_rate_pct": 0.0168,
+   "step_up_rate_pct": 0.16,
+   "decline_rate_pct": 0.151,
+   "alerts_per_day": 52,
+   "declined_fraud": 112,
+   "stepped_fraud": 37,
+   "missed_fraud": 44,
+   "net_cost": 8459.45,
+   "cost_no_model": 42905.44
+  },
+  "test": {
+   "t_step": 0.15,
+   "t_decline": 0.65,
+   "fraud_recall_flagged": 0.7861,
+   "fp_to_tp_ratio": 0.49,
+   "precision_flagged": 0.6695,
+   "fraud_dollars_total": 43055.29,
+   "dollars_saved": 37446.03,
+   "pct_dollars_saved": 87.0,
+   "false_decline_rate_pct": 0.0132,
+   "step_up_rate_pct": 0.113,
+   "decline_rate_pct": 0.17,
+   "alerts_per_day": 47,
+   "declined_fraud": 131,
+   "stepped_fraud": 27,
+   "missed_fraud": 43,
+   "net_cost": 7110.37,
+   "cost_no_model": 48080.29
+  }
+ },
+ "objective_threshold_val": 0.016835637390613556,
+ "objective_check": {
+  "val": {
+   "recall": 0.8808,
+   "fp_to_tp": 3.51
+  },
+  "test": {
+   "recall": 0.8756,
+   "fp_to_tp": 3.11
+  },
+  "threshold": 0.016835637390613556
+ },
+ "bootstrap_ci95": {
+  "recall_flagged": [
+   0.8305,
+   0.9189
+  ],
+  "fp_to_tp": [
+   2.6274,
+   3.727
+  ],
+  "pr_auc": [
+   0.7529,
+   0.8488
+  ]
+ },
+ "calibration": {
+  "frac_pos": [
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.00012,
+   0.0,
+   0.00012,
+   0.00012,
+   0.00036,
+   0.02335
+  ],
+  "mean_pred": [
+   1e-05,
+   2e-05,
+   2e-05,
+   3e-05,
+   3e-05,
+   4e-05,
+   6e-05,
+   0.0001,
+   0.00022,
+   0.02394
+  ],
+  "brier_raw": 0.000854,
+  "brier_isotonic": 0.000873,
+  "brier_base_rate": 0.002401
+ },
+ "capacity": {
+  "assumed_reviews_per_day": 200,
+  "declines_per_day": 40,
+  "flagged_per_day": 145,
+  "utilisation_pct": 20.0
+ },
+ "importance": {
+  "Device_New": 0.3391000032424927,
+  "Tx_Velocity_1H": 0.16110000014305115,
+  "Spend_Last_1H": 0.05939999967813492,
+  "Cross_Border": 0.049800001084804535,
+  "Is_Proxy_IP": 0.04780000075697899,
+  "Log_Secs_Since_Last": 0.04569999873638153,
+  "Is_First_Tx": 0.032499998807907104,
+  "Log_Dist": 0.028999999165534973,
+  "MCC_Crypto": 0.025699999183416367,
+  "MCC_Jewelry": 0.021400000900030136,
+  "MCC_Electronics": 0.017999999225139618,
+  "MCC_Online_Services": 0.017400000244379044,
+  "Dist_Missing": 0.014999999664723873,
+  "MCC_Restaurants": 0.014000000432133675,
+  "Amount_Ratio": 0.013399999588727951
+ },
+ "latency_ms_single_row": 3.56,
+ "subgroups": {
+  "MCC_group": [
+   {
+    "segment": "Crypto",
+    "txns": 827,
+    "fraud": 15,
+    "fraud_rate_pct": 1.814,
+    "recall": 1.0,
+    "false_alerts": 44,
+    "pr_auc": 0.888
+   },
+   {
+    "segment": "Electronics",
+    "txns": 4204,
+    "fraud": 31,
+    "fraud_rate_pct": 0.737,
+    "recall": 0.871,
+    "false_alerts": 49,
+    "pr_auc": 0.835
+   },
+   {
+    "segment": "Fuel",
+    "txns": 6802,
+    "fraud": 12,
+    "fraud_rate_pct": 0.176,
+    "recall": 0.833,
+    "false_alerts": 30,
+    "pr_auc": 0.722
+   },
+   {
+    "segment": "Grocery",
+    "txns": 23227,
+    "fraud": 27,
+    "fraud_rate_pct": 0.116,
+    "recall": 0.889,
+    "false_alerts": 93,
+    "pr_auc": 0.821
+   },
+   {
+    "segment": "Jewelry",
+    "txns": 869,
+    "fraud": 27,
+    "fraud_rate_pct": 3.107,
+    "recall": 1.0,
+    "false_alerts": 47,
+    "pr_auc": 0.954
+   },
+   {
+    "segment": "Online_Services",
+    "txns": 5827,
+    "fraud": 20,
+    "fraud_rate_pct": 0.343,
+    "recall": 0.95,
+    "false_alerts": 93,
+    "pr_auc": 0.833
+   },
+   {
+    "segment": "Restaurants",
+    "txns": 16709,
+    "fraud": 26,
+    "fraud_rate_pct": 0.156,
+    "recall": 0.692,
+    "false_alerts": 69,
+    "pr_auc": 0.618
+   },
+   {
+    "segment": "Retail",
+    "txns": 12439,
+    "fraud": 26,
+    "fraud_rate_pct": 0.209,
+    "recall": 0.769,
+    "false_alerts": 64,
+    "pr_auc": 0.698
+   },
+   {
+    "segment": "Travel",
+    "txns": 5880,
+    "fraud": 10,
+    "fraud_rate_pct": 0.17,
+    "recall": 0.9,
+    "false_alerts": 28,
+    "pr_auc": 0.924
+   },
+   {
+    "segment": "Utilities",
+    "txns": 6728,
+    "fraud": 7,
+    "fraud_rate_pct": 0.104,
+    "recall": 1.0,
+    "false_alerts": 31,
+    "pr_auc": 0.913
+   }
+  ],
+  "Cross_Border": [
+   {
+    "segment": "0",
+    "txns": 80688,
+    "fraud": 137,
+    "fraud_rate_pct": 0.17,
+    "recall": 0.832,
+    "false_alerts": 466,
+    "pr_auc": 0.733
+   },
+   {
+    "segment": "1",
+    "txns": 2824,
+    "fraud": 64,
+    "fraud_rate_pct": 2.266,
+    "recall": 0.969,
+    "false_alerts": 82,
+    "pr_auc": 0.938
+   }
+  ],
+  "Device_New": [
+   {
+    "segment": "0",
+    "txns": 81001,
+    "fraud": 58,
+    "fraud_rate_pct": 0.072,
+    "recall": 0.672,
+    "false_alerts": 203,
+    "pr_auc": 0.51
+   },
+   {
+    "segment": "1",
+    "txns": 2511,
+    "fraud": 143,
+    "fraud_rate_pct": 5.695,
+    "recall": 0.958,
+    "false_alerts": 345,
+    "pr_auc": 0.91
+   }
+  ],
+  "Is_Proxy_IP": [
+   {
+    "segment": "0",
+    "txns": 81780,
+    "fraud": 112,
+    "fraud_rate_pct": 0.137,
+    "recall": 0.848,
+    "false_alerts": 501,
+    "pr_auc": 0.741
+   },
+   {
+    "segment": "1",
+    "txns": 1732,
+    "fraud": 89,
+    "fraud_rate_pct": 5.139,
+    "recall": 0.91,
+    "false_alerts": 47,
+    "pr_auc": 0.914
+   }
+  ],
+  "Amount_Band": [
+   {
+    "segment": "<20",
+    "txns": 15485,
+    "fraud": 30,
+    "fraud_rate_pct": 0.194,
+    "recall": 0.7,
+    "false_alerts": 139,
+    "pr_auc": 0.438
+   },
+   {
+    "segment": "20-100",
+    "txns": 47567,
+    "fraud": 73,
+    "fraud_rate_pct": 0.153,
+    "recall": 0.863,
+    "false_alerts": 218,
+    "pr_auc": 0.812
+   },
+   {
+    "segment": "100-500",
+    "txns": 18748,
+    "fraud": 76,
+    "fraud_rate_pct": 0.405,
+    "recall": 0.921,
+    "false_alerts": 147,
+    "pr_auc": 0.862
+   },
+   {
+    "segment": ">500",
+    "txns": 1712,
+    "fraud": 22,
+    "fraud_rate_pct": 1.285,
+    "recall": 1.0,
+    "false_alerts": 44,
+    "pr_auc": 0.967
+   }
+  ],
+  "Day": [
+   {
+    "segment": "26",
+    "txns": 16730,
+    "fraud": 53,
+    "fraud_rate_pct": 0.317,
+    "recall": 0.887,
+    "false_alerts": 99,
+    "pr_auc": 0.87
+   },
+   {
+    "segment": "27",
+    "txns": 16791,
+    "fraud": 54,
+    "fraud_rate_pct": 0.322,
+    "recall": 0.889,
+    "false_alerts": 111,
+    "pr_auc": 0.804
+   },
+   {
+    "segment": "28",
+    "txns": 16481,
+    "fraud": 30,
+    "fraud_rate_pct": 0.182,
+    "recall": 0.867,
+    "false_alerts": 111,
+    "pr_auc": 0.802
+   },
+   {
+    "segment": "29",
+    "txns": 16860,
+    "fraud": 29,
+    "fraud_rate_pct": 0.172,
+    "recall": 0.828,
+    "false_alerts": 120,
+    "pr_auc": 0.694
+   },
+   {
+    "segment": "30",
+    "txns": 16650,
+    "fraud": 35,
+    "fraud_rate_pct": 0.21,
+    "recall": 0.886,
+    "false_alerts": 107,
+    "pr_auc": 0.793
+   }
+  ]
+ },
+ "psi_train_vs_test": {
+  "Log_Amount": 0.0001,
+  "Amount_Ratio": 0.0223,
+  "Log_Dist": 0.0001,
+  "Tx_Velocity_1H": 0.0,
+  "Device_New": 0.0,
+  "Cross_Border": 0.0,
+  "Is_Proxy_IP": 0.0,
+  "Log_Secs_Since_Last": 0.0596
+ },
+ "score_psi": 0.0001,
+ "fraud_mix": {
+  "train": {
+   "risky_mcc_pct": 69.0,
+   "far_pct": 50.3,
+   "proxy_pct": 13.7,
+   "device_new_pct": 82.4,
+   "median_amt": 116.05
+  },
+  "test": {
+   "risky_mcc_pct": 46.3,
+   "far_pct": 16.9,
+   "proxy_pct": 44.3,
+   "device_new_pct": 71.1,
+   "median_amt": 98.34
+  }
+ },
+ "fn_profile": {
+  "n": 25,
+  "median_amt": 36.2,
+  "device_new_pct": 24.0,
+  "far_pct": 4.0,
+  "proxy_pct": 32.0,
+  "top_mcc": {
+   "Restaurants": 8,
+   "Retail": 6,
+   "Electronics": 4
+  }
+ },
+ "fp_profile": {
+  "n": 548,
+  "median_amt": 54.95,
+  "device_new_pct": 63.0,
+  "far_pct": 38.3,
+  "cross_border_pct": 15.0,
+  "top_mcc": {
+   "Online_Services": 93,
+   "Grocery": 93,
+   "Restaurants": 69
+  }
+ },
+ "eda": {
+  "overall": {
+   "rate_pct": 0.2112,
+   "fraud": 1058,
+   "legit": 499850,
+   "amt_fraud_total": 233934.87
+  },
+  "daily": [
+   {
+    "Day": 1,
+    "txns": 16478,
+    "fraud": 20,
+    "rate_bps": 12.14
+   },
+   {
+    "Day": 2,
+    "txns": 16578,
+    "fraud": 18,
+    "rate_bps": 10.86
+   },
+   {
+    "Day": 3,
+    "txns": 16685,
+    "fraud": 26,
+    "rate_bps": 15.58
+   },
+   {
+    "Day": 4,
+    "txns": 16778,
+    "fraud": 18,
+    "rate_bps": 10.73
+   },
+   {
+    "Day": 5,
+    "txns": 16991,
+    "fraud": 21,
+    "rate_bps": 12.36
+   },
+   {
+    "Day": 6,
+    "txns": 16851,
+    "fraud": 65,
+    "rate_bps": 38.57
+   },
+   {
+    "Day": 7,
+    "txns": 16832,
+    "fraud": 27,
+    "rate_bps": 16.04
+   },
+   {
+    "Day": 8,
+    "txns": 16613,
+    "fraud": 24,
+    "rate_bps": 14.45
+   },
+   {
+    "Day": 9,
+    "txns": 16787,
+    "fraud": 30,
+    "rate_bps": 17.87
+   },
+   {
+    "Day": 10,
+    "txns": 16805,
+    "fraud": 28,
+    "rate_bps": 16.66
+   },
+   {
+    "Day": 11,
+    "txns": 16568,
+    "fraud": 29,
+    "rate_bps": 17.5
+   },
+   {
+    "Day": 12,
+    "txns": 16658,
+    "fraud": 35,
+    "rate_bps": 21.01
+   },
+   {
+    "Day": 13,
+    "txns": 16535,
+    "fraud": 25,
+    "rate_bps": 15.12
+   },
+   {
+    "Day": 14,
+    "txns": 16374,
+    "fraud": 31,
+    "rate_bps": 18.93
+   },
+   {
+    "Day": 15,
+    "txns": 16549,
+    "fraud": 65,
+    "rate_bps": 39.28
+   },
+   {
+    "Day": 16,
+    "txns": 16634,
+    "fraud": 36,
+    "rate_bps": 21.64
+   },
+   {
+    "Day": 17,
+    "txns": 16736,
+    "fraud": 66,
+    "rate_bps": 39.44
+   },
+   {
+    "Day": 18,
+    "txns": 16774,
+    "fraud": 18,
+    "rate_bps": 10.73
+   },
+   {
+    "Day": 19,
+    "txns": 16798,
+    "fraud": 38,
+    "rate_bps": 22.62
+   },
+   {
+    "Day": 20,
+    "txns": 16687,
+    "fraud": 44,
+    "rate_bps": 26.37
+   },
+   {
+    "Day": 21,
+    "txns": 16795,
+    "fraud": 40,
+    "rate_bps": 23.82
+   },
+   {
+    "Day": 22,
+    "txns": 16771,
+    "fraud": 31,
+    "rate_bps": 18.48
+   },
+   {
+    "Day": 23,
+    "txns": 16511,
+    "fraud": 33,
+    "rate_bps": 19.99
+   },
+   {
+    "Day": 24,
+    "txns": 16817,
+    "fraud": 56,
+    "rate_bps": 33.3
+   },
+   {
+    "Day": 25,
+    "txns": 16791,
+    "fraud": 33,
+    "rate_bps": 19.65
+   },
+   {
+    "Day": 26,
+    "txns": 16730,
+    "fraud": 53,
+    "rate_bps": 31.68
+   },
+   {
+    "Day": 27,
+    "txns": 16791,
+    "fraud": 54,
+    "rate_bps": 32.16
+   },
+   {
+    "Day": 28,
+    "txns": 16481,
+    "fraud": 30,
+    "rate_bps": 18.2
+   },
+   {
+    "Day": 29,
+    "txns": 16860,
+    "fraud": 29,
+    "rate_bps": 17.2
+   },
+   {
+    "Day": 30,
+    "txns": 16650,
+    "fraud": 35,
+    "rate_bps": 21.02
+   }
+  ],
+  "by_mcc": [
+   {
+    "Merchant_Category": "Crypto",
+    "txns": 5078,
+    "fraud": 150,
+    "fraud_dollars": 40133.7,
+    "rate_pct": 2.954
+   },
+   {
+    "Merchant_Category": "Electronics",
+    "txns": 25165,
+    "fraud": 174,
+    "fraud_dollars": 64986.460000000014,
+    "rate_pct": 0.691
+   },
+   {
+    "Merchant_Category": "Fuel",
+    "txns": 40274,
+    "fraud": 35,
+    "fraud_dollars": 1904.1600000000003,
+    "rate_pct": 0.087
+   },
+   {
+    "Merchant_Category": "Grocery",
+    "txns": 139877,
+    "fraud": 138,
+    "fraud_dollars": 13869.41,
+    "rate_pct": 0.099
+   },
+   {
+    "Merchant_Category": "Jewelry",
+    "txns": 5166,
+    "fraud": 143,
+    "fraud_dollars": 66709.92000000001,
+    "rate_pct": 2.768
+   },
+   {
+    "Merchant_Category": "Online_Services",
+    "txns": 35051,
+    "fraud": 166,
+    "fraud_dollars": 12774.32,
+    "rate_pct": 0.474
+   },
+   {
+    "Merchant_Category": "Restaurants",
+    "txns": 99914,
+    "fraud": 93,
+    "fraud_dollars": 6737.97,
+    "rate_pct": 0.093
+   },
+   {
+    "Merchant_Category": "Retail",
+    "txns": 75092,
+    "fraud": 82,
+    "fraud_dollars": 7975.19,
+    "rate_pct": 0.109
+   },
+   {
+    "Merchant_Category": "Travel",
+    "txns": 35064,
+    "fraud": 39,
+    "fraud_dollars": 14567.719999999998,
+    "rate_pct": 0.111
+   },
+   {
+    "Merchant_Category": "Utilities",
+    "txns": 40227,
+    "fraud": 38,
+    "fraud_dollars": 4276.02,
+    "rate_pct": 0.094
+   }
+  ],
+  "by_xborder": [
+   {
+    "Cross_Border": 0,
+    "size": 483982,
+    "sum": 629,
+    "mean": 0.0012996351103966677
+   },
+   {
+    "Cross_Border": 1,
+    "size": 16926,
+    "sum": 429,
+    "mean": 0.02534562211981567
+   }
+  ],
+  "by_newdev": [
+   {
+    "Device_New": 0,
+    "size": 484732,
+    "sum": 234,
+    "mean": 0.00048274097852008945
+   },
+   {
+    "Device_New": 1,
+    "size": 16176,
+    "sum": 824,
+    "mean": 0.050939663699307615
+   }
+  ],
+  "by_ccountry": [
+   {
+    "Card_Country": "BR",
+    "size": 49373,
+    "sum": 91,
+    "mean": 0.0018431126324104268
+   },
+   {
+    "Card_Country": "DE",
+    "size": 60131,
+    "sum": 163,
+    "mean": 0.002710748199763849
+   },
+   {
+    "Card_Country": "GB",
+    "size": 74781,
+    "sum": 170,
+    "mean": 0.0022733047164386674
+   },
+   {
+    "Card_Country": "IN",
+    "size": 100286,
+    "sum": 211,
+    "mean": 0.0021039826097361547
+   },
+   {
+    "Card_Country": "SG",
+    "size": 39722,
+    "sum": 71,
+    "mean": 0.0017874225869795076
+   },
+   {
+    "Card_Country": "US",
+    "size": 176615,
+    "sum": 352,
+    "mean": 0.0019930356991195537
+   }
+  ],
+  "by_proxy": [
+   {
+    "Is_Proxy_IP": 0,
+    "size": 490613,
+    "sum": 790,
+    "mean": 0.0016102304667833915
+   },
+   {
+    "Is_Proxy_IP": 1,
+    "size": 10295,
+    "sum": 268,
+    "mean": 0.026032054395337543
+   }
+  ],
+  "by_hour": [
+   {
+    "Hour_Of_Day": 0,
+    "size": 3263,
+    "sum": 35,
+    "mean": 0.010726325467361323
+   },
+   {
+    "Hour_Of_Day": 1,
+    "size": 3316,
+    "sum": 47,
+    "mean": 0.014173703256936067
+   },
+   {
+    "Hour_Of_Day": 2,
+    "size": 3272,
+    "sum": 59,
+    "mean": 0.018031784841075794
+   },
+   {
+    "Hour_Of_Day": 3,
+    "size": 3334,
+    "sum": 24,
+    "mean": 0.007198560287942412
+   },
+   {
+    "Hour_Of_Day": 4,
+    "size": 3259,
+    "sum": 30,
+    "mean": 0.009205277692543725
+   },
+   {
+    "Hour_Of_Day": 5,
+    "size": 6689,
+    "sum": 29,
+    "mean": 0.004335476154881148
+   },
+   {
+    "Hour_Of_Day": 6,
+    "size": 13046,
+    "sum": 56,
+    "mean": 0.004292503449333129
+   },
+   {
+    "Hour_Of_Day": 7,
+    "size": 19345,
+    "sum": 51,
+    "mean": 0.0026363401395709486
+   },
+   {
+    "Hour_Of_Day": 8,
+    "size": 26310,
+    "sum": 32,
+    "mean": 0.0012162675788673508
+   },
+   {
+    "Hour_Of_Day": 9,
+    "size": 29397,
+    "sum": 39,
+    "mean": 0.0013266659863251352
+   },
+   {
+    "Hour_Of_Day": 10,
+    "size": 32938,
+    "sum": 40,
+    "mean": 0.0012144028174145365
+   },
+   {
+    "Hour_Of_Day": 11,
+    "size": 32637,
+    "sum": 37,
+    "mean": 0.001133682630143702
+   },
+   {
+    "Hour_Of_Day": 12,
+    "size": 32571,
+    "sum": 39,
+    "mean": 0.0011973841761075805
+   },
+   {
+    "Hour_Of_Day": 13,
+    "size": 32780,
+    "sum": 40,
+    "mean": 0.0012202562538133007
+   },
+   {
+    "Hour_Of_Day": 14,
+    "size": 29512,
+    "sum": 71,
+    "mean": 0.002405801030089455
+   },
+   {
+    "Hour_Of_Day": 15,
+    "size": 29534,
+    "sum": 37,
+    "mean": 0.0012527933906683823
+   },
+   {
+    "Hour_Of_Day": 16,
+    "size": 29611,
+    "sum": 65,
+    "mean": 0.0021951301881057714
+   },
+   {
+    "Hour_Of_Day": 17,
+    "size": 32698,
+    "sum": 59,
+    "mean": 0.001804391705914735
+   },
+   {
+    "Hour_Of_Day": 18,
+    "size": 35868,
+    "sum": 47,
+    "mean": 0.0013103602096576335
+   },
+   {
+    "Hour_Of_Day": 19,
+    "size": 36218,
+    "sum": 66,
+    "mean": 0.001822298304710365
+   },
+   {
+    "Hour_Of_Day": 20,
+    "size": 29460,
+    "sum": 39,
+    "mean": 0.0013238289205702647
+   },
+   {
+    "Hour_Of_Day": 21,
+    "size": 19542,
+    "sum": 26,
+    "mean": 0.001330467710572101
+   },
+   {
+    "Hour_Of_Day": 22,
+    "size": 9892,
+    "sum": 53,
+    "mean": 0.005357864941366761
+   },
+   {
+    "Hour_Of_Day": 23,
+    "size": 6416,
+    "sum": 37,
+    "mean": 0.005766832917705736
+   }
+  ],
+  "amount_stats": {
+   "0": {
+    "median": 48.21,
+    "mean": 92.29,
+    "std": 268.26,
+    "skew": 175.68
+   },
+   "1": {
+    "median": 107.02,
+    "mean": 221.11,
+    "std": 341.71,
+    "skew": 4.0
+   }
+  },
+  "skew": {
+   "Transaction_Amount": 174.86,
+   "Distance_From_Home": 14.8,
+   "Tx_Velocity_1H": 6.32,
+   "Amount_Ratio": 443.03,
+   "Spend_Last_1H": 447.85
+  },
+  "corr": {
+   "Tx_Velocity_1H": 0.298,
+   "Device_New": 0.194,
+   "Spend_Last_1H": 0.164,
+   "Log_Secs_Since_Last": -0.109,
+   "Cross_Border": 0.095,
+   "Is_Proxy_IP": 0.075,
+   "Log_Dist": 0.059,
+   "Tx_Velocity_24H": 0.047,
+   "Dist_Missing": 0.034,
+   "Log_Amount": 0.026,
+   "Hour_Cos": 0.023,
+   "Amount_Ratio": 0.013,
+   "Hour_Sin": 0.009,
+   "Is_First_Tx": -0.007
+  },
+  "sparse_mcc": {
+   "Electronics": 25165,
+   "Jewelry": 5166,
+   "Crypto": 5078
+  },
+  "velocity": [
+   {
+    "Tx_Velocity_1H": 0.0,
+    "size": 479014,
+    "sum": 295,
+    "mean": 0.0006158483885648436
+   },
+   {
+    "Tx_Velocity_1H": 1.0,
+    "size": 20476,
+    "sum": 280,
+    "mean": 0.013674545809728463
+   },
+   {
+    "Tx_Velocity_1H": 2.0,
+    "size": 1112,
+    "sum": 225,
+    "mean": 0.20233812949640287
+   },
+   {
+    "Tx_Velocity_1H": 3.0,
+    "size": 190,
+    "sum": 145,
+    "mean": 0.7631578947368421
+   },
+   {
+    "Tx_Velocity_1H": 4.0,
+    "size": 75,
+    "sum": 72,
+    "mean": 0.96
+   },
+   {
+    "Tx_Velocity_1H": 5.0,
+    "size": 41,
+    "sum": 41,
+    "mean": 1.0
+   }
+  ]
+ },
+ "stats": {
+  "ks_logamount": [
+   0.2781,
+   0.0
+  ],
+  "mannwhitney_p": 8.440810799285543e-58,
+  "fraud_rate_ci95": [
+   0.1989,
+   0.2243
+  ]
+ }
+}
